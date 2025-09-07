@@ -1,15 +1,22 @@
-import { View, Text, Button, TextInput, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { supabase } from '@/database/lib/supabase';
 import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '@/database/lib/supabase';
 
 export default function Login() {
   const [username, setUserName] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  console.log(username, password);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -18,47 +25,151 @@ export default function Login() {
     const cleanUsername = username.trim().toLowerCase();
     const cleanPassword = password.trim();
 
-    type UserRow = {
-      userid: number;
-      username: string;
-      password: string;
-      email: string;
-    }
+    const { data, error } = await supabase
+      .from('usertable')
+      .select('*')
+      .ilike('username', cleanUsername)
+      .eq('password', cleanPassword)
+      .maybeSingle();
 
-    const { data, error } = await supabase.from<UserRow>('usertable').select('*').ilike('username', username).eq('password', password).maybeSingle();
-    //const { data, error } = await supabase.from<UserRow>('usertable').select('*').ilike('username', username).maybeSingle();
-
-    console.log('raw input ->', { username, password })
-    console.log('Login attempt →', { cleanUsername, cleanPassword });
-    console.log('Query result →', { data, error });
-
-    if (error) {
+    if (error || !data) {
       setError('Invalid username or password');
-    } else if (data) {
-      // login successful -> go to dashboard
+    } else {
       router.replace('/mainDash');
     }
+
     setLoading(false);
   };
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Login Page</Text>
+    <View style={styles.container}>
+      <View style={styles.headerRow}>
+        <Text style={styles.appTitle}>App Title</Text>
+        <Pressable style={styles.gear} onPress={() => router.push('/settings')}>
+          <Ionicons name="settings-sharp" size={24} color="white" />
+        </Pressable>
+      </View>
 
-      <TextInput placeholder="Name" value={username} onChangeText={setUserName} />
-      <TextInput placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry/>
 
-        {error && <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>}
+      <View style={styles.divider} />
+
+      <Text style={styles.loginHeader}>Login</Text>
+
+      <Text style={styles.label}>Username</Text>
+      <TextInput
+        placeholder="Username..."
+        placeholderTextColor="#ccc"
+        value={username}
+        onChangeText={setUserName}
+        style={styles.input}
+      />
+
+      <Text style={styles.label}>Password</Text>
+      <TextInput
+        placeholder="Password..."
+        placeholderTextColor="#ccc"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        style={styles.input}
+      />
+
+      {error && <Text style={styles.errorText}>{error}</Text>}
 
       {loading ? (
-        <ActivityIndicator />
+        <ActivityIndicator color="white" style={{ marginTop: 20 }} />
       ) : (
         <>
-          <Button title="Login" onPress={handleLogin} />
-          <View style={{ height: 10 }} />
-          <Button title="Create Account" onPress={() => router.push('/createAccount')} />
+          <Pressable style={styles.loginButton} onPress={handleLogin}>
+            <Text style={styles.loginButtonText}>Login</Text>
+          </Pressable>
+
+          <Pressable onPress={() => router.push('/createAccount')}>
+            <Text style={styles.createAccountText}>Create Account</Text>
+          </Pressable>
         </>
       )}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#001F2D',
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerRow: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  appTitle: {
+    fontSize: 18,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  gear: {
+
+    position: 'absolute',
+    right: 20,
+  },
+  divider: {
+    position: 'absolute',
+    top: 90,
+    width: '90%',
+    height: 1,
+    backgroundColor: '#fff',
+  },
+  loginHeader: {
+    fontSize: 28,
+    color: 'white',
+    fontWeight: 'bold',
+    marginBottom: 20,
+    marginTop: 60,
+  },
+  label: {
+    alignSelf: 'flex-start',
+    color: 'white',
+    fontWeight: 'bold',
+    marginBottom: 5,
+    marginTop: 10,
+  },
+  input: {
+    width: '100%',
+    padding: 12,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 6,
+    color: 'white',
+    marginBottom: 10,
+  },
+  loginButton: {
+    backgroundColor: '#FF3D7A',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 6,
+    marginTop: 20,
+    width: '100%',
+    alignItems: 'center',
+  },
+  loginButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  createAccountText: {
+    marginTop: 30,
+    color: '#FF3D7A',
+    textAlign: 'center',
+  },
+  errorText: {
+    color: 'red',
+    marginTop: 10,
+  },
+});

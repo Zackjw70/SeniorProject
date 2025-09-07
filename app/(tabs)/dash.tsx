@@ -1,29 +1,23 @@
-import { Image } from 'expo-image';
-import { Button, Modal, Platform, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import { SelectList } from 'react-native-dropdown-select-list';
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { AntDesign } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  Modal,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Button,
+  Platform
+} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { router } from 'expo-router';
 
 export default function HomeScreen() {
-  type Item = {
-    name: string;
-    type: string;
-    value: number;
-    tag: string;
-    date: string;
-  };
-  const [items, setItems] = useState<Item[]>([]);
-  const [name, setName] = useState('');
-  const [type, setType] = useState('');
-  const [value, setValue] = useState('');
-  const [tag, setTag] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [value, setValue] = useState('');
+  const [category, setCategory] = useState('');
+  const [user, setUser] = useState('Zack'); 
+  const [notes, setNotes] = useState('');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -33,123 +27,160 @@ export default function HomeScreen() {
       setDate(selectedDate);
     }
   };
-  const saveItem = async () => {
-    if (!name || !type || !value || !tag) {
-      alert('Please fill all fields');
+
+  const saveExpense = () => {
+    if (!value) {
+      alert('Please enter an amount.');
       return;
     }
 
-    useEffect(() => {
-      loadItems();
-    }, []);
-
-    const newItem = {
-      name,
-      type,
+    const newExpense = {
       value: parseFloat(value),
-      tag,
-      date: date.toISOString()  // Save date as ISO format
+      category,
+      user,
+      notes,
+      date: date.toISOString(),
     };
 
-    try {
-      const existingItems = await AsyncStorage.getItem('storedItems');
-      const itemsArray = existingItems ? JSON.parse(existingItems) : [];
-      const updatedItems = [...itemsArray, newItem];
-      await AsyncStorage.setItem('storedItems', JSON.stringify(updatedItems));
-      setItems(updatedItems);
-      setName('');
-      setType('');
-      setValue('');
-      setTag('');
-      setDate(new Date()); // Reset to default
-      setModalVisible(false);
-    } catch (error) {
-      console.error('Error saving item', error);
-    }
+    console.log('Saving Expense:', newExpense);
+    setModalVisible(false);
+    setValue('');
+    setCategory('');
+    setNotes('');
+    setDate(new Date());
   };
-  const loadItems = async () => {
-    try {
-      const storedData = await AsyncStorage.getItem('storedItems');
-      if (storedData) setItems(JSON.parse(storedData));
-    } catch (error) {
-      console.error('Error loading items', error);
-    }
-  };
-
-
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-         <Button title="Back to Main Dashboard" onPress={() => router.replace('/mainDash')} />
+    <View style={styles.pageContainer}>
+      <Button title="Back to Main Dashboard" onPress={() => router.replace('/mainDash')} />
+      <Button title="Open Add Expense Modal" onPress={() => setModalVisible(true)} />
 
-          <Modal animationType="slide" transparent={true} visible={modalVisible}>
-        <ThemedView style={styles.modalContainer}>
-          <TextInput placeholder="Name" value={name} onChangeText={setName} style={styles.input} />
-          <TextInput placeholder="Type" value={type} onChangeText={setType} style={[styles.input, styles.hidden]} />
-          <TextInput placeholder="Value" value={value} onChangeText={setValue} keyboardType="numeric" style={styles.input} />
-          <TextInput placeholder="Tag" value={tag} onChangeText={setTag} style={styles.input} />
-          <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePickerContainer}>
-            <ThemedText style={styles.dateText}>{date.toDateString()}</ThemedText>
-            <AntDesign name="caretdown" size={16} color="gray" />
-          </TouchableOpacity>
 
-          {showDatePicker && (
-            <DateTimePicker
-              value={date}
-              mode="date"
-              display="default"
-              onChange={onChangeDate}
+      <Modal animationType="slide" transparent={true} visible={modalVisible}>
+        <View style={styles.overlay}>
+          <View style={styles.expenseModal}>
+            <Text style={styles.modalTitle}>Add Expense</Text>
+            <Text style={styles.amountText}>${value || '0.00'}</Text>
+
+            <View style={styles.row}>
+              <Text style={styles.label}>Category</Text>
+              <TouchableOpacity onPress={() => alert('Choose category')}>
+                <Text style={styles.valueText}>{category || 'Choose >'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.row}>
+              <Text style={styles.label}>Date</Text>
+              <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+                <DateTimePicker
+                value={date}
+                mode="date"
+                display="default"
+                onChange={onChangeDate}
+              />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.row}>
+              <Text style={styles.label}>User</Text>
+              <TouchableOpacity onPress={() => alert('Choose user')}>
+                <Text style={styles.valueText}>{user} {'>'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              placeholder="Notes"
+              placeholderTextColor="#888"
+              value={notes}
+              onChangeText={setNotes}
+              style={styles.notesInput}
             />
-          )}
-          <Button title="Save" onPress={saveItem} />
-          <Button title="Close" onPress={() => setModalVisible(false)} />
-        </ThemedView>
-      </Modal>
 
-      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
-        <AntDesign name="plus" size={24} color="white" />
-      </TouchableOpacity>
-    </ParallaxScrollView>
+            <TextInput
+              placeholder="Enter Amount"
+              value={value}
+              onChangeText={setValue}
+              keyboardType="numeric"
+              style={styles.hiddenInput}
+            />
+
+            <TouchableOpacity style={styles.addButton} onPress={saveExpense}>
+              <Text style={styles.buttonText}>Add Expense</Text>
+            </TouchableOpacity>
+
+            <Button title="Close" onPress={() => setModalVisible(false)} />
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  appContainer: { flex: 1, backgroundColor: 'black', alignItems: 'center', padding: 10 },
-  appSummary: { flexDirection: 'row', justifyContent: 'space-around', width: '80%', marginVertical: 10 },
-  summaryText: { fontSize: 20 },
-  titleContainer: { paddingTop: 50, backgroundColor: 'black' },
-  listItem: { padding: 10, borderBottomWidth: 1, color: 'white' },
-  modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'white' },
-  input: { width: '80%', padding: 10, margin: 10, borderWidth: 1, borderColor: 'gray', borderRadius: 5 },
-  fab: { position: 'absolute', bottom: 110, right: 30, backgroundColor: 'blue', padding: 15, borderRadius: 30, alignItems: 'center' },
-  hidden: { display: 'none' },
-  datePickerContainer: {
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    width: '80%', 
-    padding: 10, 
-    margin: 10, 
-    borderWidth: 1, 
-    borderColor: 'gray', 
-    borderRadius: 5
+  pageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#002B36',
   },
-  dateText: {
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  expenseModal: {
+    width: '90%',
+    backgroundColor: '#002933',
+    borderRadius: 10,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 22,
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  amountText: {
+    fontSize: 28,
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 8,
+  },
+  label: {
     fontSize: 16,
-    color: 'black'
+    color: 'white',
   },
-  reactLogo: {
-    width: 120,
-    height: 120,
-    resizeMode: 'contain',
-    alignSelf: 'center',
-    marginTop: 40
-  }
+  valueText: {
+    fontSize: 16,
+    color: '#ccc',
+  },
+  notesInput: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 10,
+    marginBottom: 20,
+    color: 'black',
+  },
+  hiddenInput: {
+    height: 0,
+    width: 0,
+    opacity: 0,
+  },
+  addButton: {
+    backgroundColor: '#ff4081',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
 });
